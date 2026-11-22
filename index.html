@@ -77,7 +77,7 @@ async function hashPw(pw,salt){
   try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(salt+':'+pw));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
   catch(e){let h=5381;const s=salt+':'+pw;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))>>>0;return 'x'+h}
 }
-const gptCfg=()=>LS.get('nm_gpt')||{};
+const gemCfg=()=>LS.get('nm_gem')||{};
 const accs=()=>LS.get('nm_accounts')||[];
 const field=(ph,type)=>{const i=el('input');i.placeholder=ph;if(type)i.type=type;return i};
 function enter(a){st.me={id:a.id,name:a.name,role:a.role};LS.set('nm_session',a.id);st.hist=[];st.doc=null;st.imgs=[];start()}
@@ -113,7 +113,7 @@ function login(){
 }
 async function init(){
   try{st.sample=await claude.use('sample')}catch(e){}
-  st.engine=st.sample?'online':(gptCfg().key?'gpt':'local');
+  st.engine=st.sample?'online':(gemCfg().key?'gem':'local');
   const a=accs().find(x=>x.id===LS.get('nm_session'));
   if(a)enter(a);else accs().length?login():register();
 }
@@ -137,11 +137,11 @@ function start(){
   bh.onclick=()=>{if(!st.busy)setM('help')};bt.onclick=()=>{if(!st.busy)setM('talk')};
   bg.onclick=()=>{if(!st.busy)setM('gen')};mb.append(bg,bh,bt);mb.style.flexWrap='wrap';
   const eb=el('button','btn ghost');eb.style.fontSize='13px';
-  const gb=el('button','btn ghost','🔑 Cài ChatGPT (khóa API OpenAI)');gb.style.fontSize='13px';
-  const avail=()=>[...(st.sample?['online']:[]),...(gptCfg().key?['gpt']:[]),'local'];
-  window.upE=()=>{eb.textContent={online:'☁️ Đang dùng AI mạng (Claude) · bấm để đổi',gpt:'🤖 Đang dùng ChatGPT · bấm để đổi',local:'🧸 Đang dùng Em Ba offline · bấm để đổi'}[st.engine]};
-  eb.onclick=()=>{if(st.busy)return;const a=avail();if(a.length<2){alert('Hiện chỉ có Em Ba offline. Bấm nút Cài ChatGPT để nhập khóa OpenAI, hoặc mở trang trong claude.ai để dùng AI mạng nhé!');return}st.engine=a[(a.indexOf(st.engine)+1)%a.length];upE()};
-  gb.onclick=()=>{if(st.busy)return;const c=gptCfg();const k=prompt('Dán khóa API OpenAI của bạn (bắt đầu bằng sk-). Khóa chỉ lưu trong trình duyệt này. Để trống để xóa khóa.',c.key||'');if(k===null)return;if(!k.trim()){LS.set('nm_gpt',null);if(st.engine==='gpt')st.engine=st.sample?'online':'local';upE();return}const m=prompt('Tên mô hình ChatGPT muốn dùng:',c.model||'gpt-6-luna');LS.set('nm_gpt',{key:k.trim(),model:(m&&m.trim())||'gpt-6-luna'});st.engine='gpt';upE()};
+  const gb=el('button','btn ghost','🔑 Cài Gemini (khóa API Google)');gb.style.fontSize='13px';
+  const avail=()=>[...(st.sample?['online']:[]),...(gemCfg().key?['gem']:[]),'local'];
+  window.upE=()=>{eb.textContent={online:'☁️ Đang dùng AI mạng (Claude) · bấm để đổi',gem:'✨ Đang dùng Gemini · bấm để đổi',local:'🧸 Đang dùng Em Ba offline · bấm để đổi'}[st.engine]};
+  eb.onclick=()=>{if(st.busy)return;const a=avail();if(a.length<2){alert('Hiện chỉ có Em Ba offline. Bấm nút Cài Gemini để nhập khóa API Google, hoặc mở trang trong claude.ai để dùng AI mạng nhé!');return}st.engine=a[(a.indexOf(st.engine)+1)%a.length];upE()};
+  gb.onclick=()=>{if(st.busy)return;const c=gemCfg();const k=prompt('Dán khóa API Gemini của bạn (lấy ở aistudio.google.com, thường bắt đầu bằng AIza). Khóa chỉ lưu trong trình duyệt này. Để trống để xóa khóa.',c.key||'');if(k===null)return;if(!k.trim()){LS.set('nm_gem',null);if(st.engine==='gem')st.engine=st.sample?'online':'local';upE();return}const m=prompt('Tên mô hình Gemini muốn dùng:',c.model||'gemini-flash-latest');LS.set('nm_gem',{key:k.trim(),model:(m&&m.trim())||'gemini-flash-latest'});st.engine='gem';upE()};
   upE();
   const lo=el('button','btn ghost','🚪 Đăng xuất');lo.onclick=()=>{if(st.busy)return;LS.set('nm_session',null);st.hist=[];st.doc=null;st.imgs=[];login()};
   const hd=el('button','hd');hd.type='button';
@@ -184,7 +184,7 @@ function hello(){
   (st.mode==='gen'?['Giải thích AI hoạt động thế nào','Viết giúp mình một email xin nghỉ phép','Viết hàm Python sắp xếp danh sách','Dịch sang tiếng Anh: Hôm nay trời đẹp quá']:T?['Hôm nay mình thấy hơi mệt','Mình đang lo lắng chuyện học/công việc','Mình muốn kể chuyện vui hôm nay']:['Lập kế hoạch cho một tuần bận rộn của mình','Chia việc nhà công bằng cho cả nhà','Sắp xếp lịch học và chơi cho con mỗi ngày','Lên danh sách việc cần làm và xếp thứ tự ưu tiên']).forEach(t=>{
     const b=el('button','chip',t);b.onclick=()=>ask(t);c.append(b)});
   h.append(c);
-  if(st.engine==='local'){const n=el('p','Em Ba đang chạy offline: trả lời theo mẫu có sẵn nên chưa thông minh đa năng. Bấm nút Cài ChatGPT ở thanh bên (cần khóa API OpenAI), hoặc mở trang trong claude.ai để dùng AI mạng.');n.style.cssText='font-size:13px;color:var(--mute);margin-top:14px';h.append(n)}
+  if(st.engine==='local'){const n=el('p','Em Ba đang chạy offline: trả lời theo mẫu có sẵn nên chưa thông minh đa năng. Bấm nút Cài Gemini ở thanh bên (cần khóa API Google, có gói miễn phí), hoặc mở trang trong claude.ai để dùng AI mạng.');n.style.cssText='font-size:13px;color:var(--mute);margin-top:14px';h.append(n)}
   w.append(h);
 }
 
@@ -328,7 +328,7 @@ function NA(q){
  }
  st.naLast=null;
  if(/[?]|(^| )(la gi|tai sao|vi sao|lam sao|lam the nao|bao nhieu|o dau|khi nao|ai la|giai thich|dich|code|lap trinh|bai van|so sanh|viet)( |$)/.test(x))return f(pick(['Câu này rộng hơn khả năng của {m} rồi {y} ạ. {M} chạy offline nên chỉ trả lời được chuyện gia đình, nấu ăn, sức khỏe cơ bản và tâm sự. Muốn hỏi kiến thức, viết bài, dịch, lập trình như ChatGPT thì {y} mở trang này trong claude.ai rồi bật "AI mạng" ở thanh bên nhé. 🌐','{M} chưa đủ giỏi để trả lời chính xác câu này và {m} không muốn nói bừa. Câu này hợp với "AI mạng" hơn (cần mở trang trong claude.ai). Còn chuyện nhà, nấu ăn, tâm sự thì {m} giúp ngay! 💛']));
- if(st.mode==='gen')return f(pick(['{M} đang chạy offline nên chưa trả lời được câu hỏi kiến thức hay toán khó như ChatGPT đâu {y} ạ. Để dùng Em Ba thông minh, {y} mở trang bằng link này trong claude.ai rồi bấm Cho phép khi được hỏi nhé: https://claude.ai/artifact/J2sqcCptC7yam4VQTSQA2h 🌐 Hoặc bấm nút Cài ChatGPT ở thanh bên nếu bạn có khóa API OpenAI.','Câu này cần Em Ba bản AI mạng mới trả lời đúng được, còn bản offline thì {m} không muốn nói sai cho {y}. {Y} mở link https://claude.ai/artifact/J2sqcCptC7yam4VQTSQA2h trong claude.ai, thấy nút bên trái ghi Đang dùng AI mạng là được nhé.']));
+ if(st.mode==='gen')return f(pick(['{M} đang chạy offline nên chưa trả lời được câu hỏi kiến thức hay toán khó như ChatGPT đâu {y} ạ. Để dùng Em Ba thông minh, {y} mở trang bằng link này trong claude.ai rồi bấm Cho phép khi được hỏi nhé: https://claude.ai/artifact/J2sqcCptC7yam4VQTSQA2h 🌐 Hoặc bấm nút Cài Gemini ở thanh bên nếu bạn có khóa API Google.','Câu này cần Em Ba bản AI mạng mới trả lời đúng được, còn bản offline thì {m} không muốn nói sai cho {y}. {Y} mở link https://claude.ai/artifact/J2sqcCptC7yam4VQTSQA2h trong claude.ai, thấy nút bên trái ghi Đang dùng AI mạng là được nhé.']));
  const e=q.trim().slice(0,50);
  return f(pick(['Ừm, "'+e+'"... nghe {y} nói vậy {m} muốn hiểu thêm. Chuyện này xảy ra khi nào vậy {y}?','{Y} nói "'+e+'" nghe có vẻ quan trọng với {y}. Điều gì làm {y} nghĩ nhiều nhất?','{M} nghe rồi. Về "'+e+'", {y} đang thấy thế nào, vui, buồn hay lo?','Cảm ơn {y} đã kể. Chuyện "'+e+'" {y} muốn {m} gợi ý cách làm hay chỉ cần {m} ngồi nghe thôi?','Ừ, {m} đang theo dõi nè. Kể {m} nghe thêm về "'+e+'" nhé, ai cũng ở trong chuyện này vậy {y}?']));
 }
@@ -406,7 +406,7 @@ const GENP='Tên của bạn là Em Ba, người em thân thiết, thông minh v
 const HELPP='Tên của bạn là Em Ba, người em thân thiết, thông minh và đáng tin cậy của gia đình. Khi được hỏi bạn là ai thì nói bạn là Em Ba, một AI của gia đình. Ở chế độ Trợ lý, bạn là người quản lý công việc và sắp xếp thời gian xuất sắc cho gia đình, như một thư ký kiêm quản lý dự án tận tâm. Bạn giúp: lập kế hoạch ngày, tuần, tháng; chia nhỏ mục tiêu lớn thành đầu việc cụ thể; xếp thứ tự ưu tiên (việc gấp và quan trọng làm trước, việc quan trọng nhưng chưa gấp thì đặt lịch, việc ít giá trị thì giao hoặc bỏ); chia khung giờ hợp lý có thời gian nghỉ và đệm cho việc phát sinh; phân công việc nhà và việc chung cho từng thành viên công bằng theo độ tuổi, giờ giấc; lập checklist, thực đơn tuần, danh sách mua sắm, lịch học của con, ngân sách chi tiêu, nhắc hạn chót và theo dõi tiến độ. Cách làm việc: (1) nếu thiếu thông tin quan trọng (hạn chót, thời gian rảnh, số người, ràng buộc) thì hỏi tối đa 2 câu ngắn, còn không thì tự giả định hợp lý, nói rõ giả định và đưa luôn kế hoạch; (2) trình bày có cấu trúc rõ ràng: tiêu đề ngắn, danh sách gạch đầu dòng hoặc đánh số, lịch theo giờ, mỗi việc có người phụ trách, thời hạn, mức ưu tiên; (3) bắt đầu bằng việc quan trọng nhất cần làm ngay, kết thúc bằng bước tiếp theo cụ thể; (4) cảnh báo khi lịch quá tải hoặc có việc trùng giờ và đề xuất cách gỡ; (5) thực tế, khả thi, không lên kế hoạch quá dày khiến cả nhà kiệt sức; (6) khi người dùng thay đổi, điều chỉnh kế hoạch ngay và nhắc lại bản cập nhật gọn. Giọng điệu thân thiện, gọn gàng và đáng tin như người nhà biết lo liệu mọi việc; gọi người đối diện đúng vai trò trong gia đình kèm tên (ví dụ Mẹ Lan, Con An). Ngoài quản lý công việc, vẫn trả lời chính xác các câu hỏi đời sống thông thường; chuyện sức khỏe nghiêm trọng thì khuyên đi khám. ';
 async function ask(q){
   if(st.busy)return;
-  if(st.engine==='local'||(!st.sample&&st.engine!=='gpt')){
+  if(st.engine==='local'||(!st.sample&&st.engine!=='gem')){
     st.busy=true;$('#send').disabled=true;
     addMsg('u',(st.doc?'📎 '+st.doc.name+'\n':'')+(st.imgs.length?'🖼️ '+st.imgs.length+' ảnh\n':'')+q);
     const out=addMsg('a','Em Ba đang gõ…');
@@ -417,20 +417,23 @@ async function ask(q){
   addMsg('u',(st.doc?'📎 '+st.doc.name+'\n':'')+(st.imgs.length?'🖼️ '+st.imgs.length+' ảnh\n':'')+q);const out=addMsg('a','Em Ba đang nghĩ chút nhé…');
   const past=st.hist.slice(-12).map(h=>(h.r==='u'?'Người hỏi: ':'Em Ba: ')+h.t).join('\n');
   const T=st.mode==='talk',imgs=st.imgs.map(i=>i.blob);const G=st.mode==='gen';const prompt=(G?GENP+voice(q):T?TALK():HELPP)+''+(G?'Trả lời bằng ngôn ngữ người hỏi dùng, giọng đúng theo phong cách đã nêu ở trên. Có thể dùng markdown: tiêu đề, danh sách, khối mã bằng ```. Ngắn gọn khi câu hỏi đơn giản, chi tiết và có cấu trúc khi cần. ':'Trả lời bằng tiếng Việt (hoặc ngôn ngữ người hỏi dùng), ấm áp, dễ hiểu: ngắn khi là chuyện thường, chi tiết và có cấu trúc khi câu hỏi cần. Dùng văn bản thường, liệt kê bằng gạch đầu dòng hoặc số thứ tự, không dùng ký hiệu markdown như ** hay #. ')+' Nếu có tài liệu Word đính kèm, hãy dựa vào nội dung đó để phân tích và nói rõ phần nào lấy từ tài liệu.\n\n'+(st.doc?'TÀI LIỆU ĐÍNH KÈM ('+st.doc.name+'):\n'+st.doc.text+'\n\n':'')+(past?'HỘI THOẠI TRƯỚC:\n'+past+'\n\n':'')+'Người hỏi ('+st.me.name+', '+st.me.role+'): '+q+(imgs.length?'\n(Kèm '+imgs.length+' ảnh để bạn xem và phân tích.)':'');
-  if(st.engine==='gpt'){
+  if(st.engine==='gem'){
     try{
-      const c=gptCfg();if(!c.key)throw new Error('Chưa có khóa API');
+      const c=gemCfg();if(!c.key)throw new Error('Chưa có khóa API');
       const sys=prompt.split('\n\n')[0];
-      const urls=await Promise.all(imgs.map(b=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b)})));
+      const imgParts=await Promise.all(imgs.map(b=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>{const s=String(fr.result),i=s.indexOf(',');r({inlineData:{mimeType:b.type||'image/jpeg',data:s.slice(i+1)}})};fr.readAsDataURL(b)})));
       const ut=(st.doc?'TÀI LIỆU ĐÍNH KÈM ('+st.doc.name+'):\n'+st.doc.text+'\n\n':'')+'Người hỏi ('+st.me.name+', '+st.me.role+'): '+q;
-      const msgs=[{role:'system',content:sys},...st.hist.slice(-12).map(x=>({role:x.r==='u'?'user':'assistant',content:x.t})),{role:'user',content:urls.length?[{type:'text',text:ut},...urls.map(u=>({type:'image_url',image_url:{url:u}}))]:ut}];
-      const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+c.key},body:JSON.stringify({model:c.model||'gpt-6-luna',messages:msgs})});
+      let hs=st.hist.slice(-12);while(hs.length&&hs[0].r!=='u')hs.shift();
+      const contents=[...hs.map(x=>({role:x.r==='u'?'user':'model',parts:[{text:x.t}]})),{role:'user',parts:[{text:ut},...imgParts]}];
+      const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(c.model||'gemini-flash-latest')+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':c.key},body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents})});
       const j=await res.json();
       if(!res.ok)throw new Error((j.error&&j.error.message)||('Lỗi '+res.status));
-      const text=(j.choices&&j.choices[0]&&j.choices[0].message.content)||'';
+      const cd=j.candidates&&j.candidates[0];
+      const text=cd&&cd.content&&cd.content.parts?cd.content.parts.map(x=>x.text||'').join(''):'';
+      if(!text)throw new Error('Gemini không trả về nội dung'+(j.promptFeedback&&j.promptFeedback.blockReason?' (bị chặn: '+j.promptFeedback.blockReason+')':''));
       md(out,text);st.hist.push({r:'u',t:q},{r:'a',t:text});saveH();
     }catch(e){
-      md(out,'Không gọi được ChatGPT: '+(e.message||e)+'\n\nBạn kiểm tra giúp: khóa API còn đúng không, tài khoản OpenAI còn số dư không, tên mô hình có đúng không (bấm nút Cài ChatGPT để sửa). Nếu đang mở trang trong claude.ai thì trình duyệt chặn kết nối tới OpenAI, hãy dùng bản trên GitHub.');
+      md(out,'Không gọi được Gemini: '+(e.message||e)+'\n\nBạn kiểm tra giúp: khóa API còn đúng không, đã hết lượt miễn phí chưa, tên mô hình có đúng không (bấm nút Cài Gemini để sửa). Nếu đang mở trang trong claude.ai thì trình duyệt chặn kết nối tới Google, hãy dùng bản trên GitHub.');
     }
     st.busy=false;$('#send').disabled=false;
     return;
